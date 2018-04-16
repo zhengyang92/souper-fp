@@ -111,6 +111,16 @@ struct Inst : llvm::FoldingSetNode {
 
     ReservedConst,
     ReservedInst,
+    FMul,
+    FDiv,
+    FAdd,
+    FSub,
+
+    FOeq,
+    FOle,
+    FOlt,
+    FOge,
+    FOgt,
 
     None,
 } Kind;
@@ -118,6 +128,7 @@ struct Inst : llvm::FoldingSetNode {
   Kind K;
   unsigned Number;
   unsigned Width;
+  bool Float = false;
   Block *B;
   bool Available = true;
   llvm::APInt Val;
@@ -222,10 +233,18 @@ public:
 
   Inst *createVar(unsigned Width, llvm::StringRef Name);
   Inst *createVar(unsigned Width, llvm::StringRef Name,
+<<<<<<< HEAD
                   llvm::ConstantRange Range,
                   llvm::APInt Zero, llvm::APInt One,
                   bool NonZero, bool NonNegative, bool PowOfTwo,
                   bool Negative, unsigned NumSignBits);
+=======
+                  llvm::APInt Zero=llvm::APInt(1, 0, false),
+                  llvm::APInt One=llvm::APInt(1, 0, false), bool NonZero=false,
+                  bool NonNegative=false, bool PowOfTwo=false, bool Negative=false,
+                  bool Float=false,
+                  unsigned NumSignBits=1);
+>>>>>>> 5696bbd... FP Constant Synthesis Support
   Block *createBlock(unsigned Preds);
 
   Inst *getPhi(Block *B, const std::vector<Inst *> &Ops);

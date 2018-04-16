@@ -130,7 +130,10 @@ std::string ReplacementContext::printInstImpl(Inst *I, llvm::raw_ostream &Out,
 
   case Inst::Const:
     I->Val.print(SS, false);
-    SS << ":i" << I->Val.getBitWidth();
+    if (I->Float)
+      SS << ":f" << I->Val.getBitWidth();
+    else
+      SS << ":i" << I->Val.getBitWidth();
     return SS.str();
 
   case Inst::UntypedConst:
@@ -179,8 +182,12 @@ std::string ReplacementContext::printInstImpl(Inst *I, llvm::raw_ostream &Out,
     case Inst::UMulO:
       break;
     default: {
-      Out << "%" << InstName << ":i" << I->Width << " = "
-          << Inst::getKindName(I->K);
+      if (I->Float)
+        Out << "%" << InstName << ":f" << I->Width << " = "
+            << Inst::getKindName(I->K);
+      else
+        Out << "%" << InstName << ":i" << I->Width << " = "
+            << Inst::getKindName(I->K);
       if (I->K == Inst::Var) {
         if (I->KnownZeros.getBoolValue() || I->KnownOnes.getBoolValue())
           Out << " (knownBits=" << Inst::getKnownBitsString(I->KnownZeros, I->KnownOnes)
@@ -361,6 +368,27 @@ const char *Inst::getKindName(Kind K) {
     return "urem";
   case SRem:
     return "srem";
+
+  case FDiv:
+    return "fdiv";
+  case FMul:
+    return "fmul";
+  case FSub:
+    return "fsub";
+  case FAdd:
+    return "fadd";
+
+  case FOeq:
+    return "foeq";
+  case FOle:
+    return "fole";
+  case FOlt:
+    return "folt";
+  case FOge:
+    return "foge";
+  case FOgt:
+    return "fogt";
+
   case And:
     return "and";
   case Or:
@@ -466,6 +494,15 @@ Inst::Kind Inst::getKind(std::string Name) {
                    .Case("sdivexact", Inst::SDivExact)
                    .Case("urem", Inst::URem)
                    .Case("srem", Inst::SRem)
+                   .Case("fdiv", Inst::FDiv)
+                   .Case("fmul", Inst::FMul)
+                   .Case("fadd", Inst::FAdd)
+                   .Case("fsub", Inst::FSub)
+                   .Case("foeq", Inst::FOeq)
+                   .Case("fole", Inst::FOle)
+                   .Case("folt", Inst::FOlt)
+                   .Case("fogt", Inst::FOgt)
+                   .Case("foge", Inst::FOge)
                    .Case("and", Inst::And)
                    .Case("or", Inst::Or)
                    .Case("xor", Inst::Xor)
@@ -589,6 +626,7 @@ Inst *InstContext::createVar(unsigned Width, llvm::StringRef Name,
                              llvm::ConstantRange Range,
                              llvm::APInt Zero, llvm::APInt One, bool NonZero,
                              bool NonNegative, bool PowOfTwo, bool Negative,
+                             bool Float,
                              unsigned NumSignBits) {
   // Create a new vector of Insts if Width is not found in VarInstsByWidth
   auto &InstList = VarInstsByWidth[Width];
@@ -608,6 +646,7 @@ Inst *InstContext::createVar(unsigned Width, llvm::StringRef Name,
   I->NonNegative = NonNegative;
   I->PowOfTwo = PowOfTwo;
   I->Negative = Negative;
+  I->Float = Float;
   I->NumSignBits = NumSignBits;
   return I;
 }
@@ -711,6 +750,8 @@ bool Inst::isCommutative(Inst::Kind K) {
   case MulNUW:
   case MulNW:
   case And:
+  case FMul:
+  case FAdd:
   case Or:
   case Xor:
   case Eq:

@@ -22,12 +22,12 @@ fi
 # hiredis version 0.13.3
 hiredis_commit=010756025e8cefd1bc66c6d4ed3b1648ef6f1f95
 llvm_branch=tags/RELEASE_700/final
-klee_repo=https://github.com/rsas/klee
-klee_branch=pure-bv-qf-llvm-7.0
 alive_commit=b7f1ae1fb55ddf326dfe3865c82a320b77f4ae05
 alive_repo=https://github.com/manasij7479/alive2.git
 z3_repo=https://github.com/Z3Prover/z3.git
 z3_branch=z3-4.8.4
+klee_repo=https://github.com/zhengyangl/klee
+klee_branch=souper-fp-patch
 
 llvm_build_type=Release
 if [ -n "$1" ] ; then

@@ -178,8 +178,16 @@ Inst *ExprBuilder::makeArrayRead(Value *V) {
     Name = V->getName();
   unsigned Width = DL.getTypeSizeInBits(V->getType());
   KnownBits Known(Width);
-  bool NonZero = false, NonNegative = false, PowOfTwo = false, Negative = false;
+  bool NonZero = false, NonNegative = false, PowOfTwo = false, Negative = false, Float=false;
   unsigned NumSignBits = 1;
+
+  if (V->getType()->isFloatingPointTy()) {
+    if (V->getType()->isFloatTy() || V->getType()->isDoubleTy()) {
+      Float = true;
+    }
+    else
+      llvm_unreachable("now only support 32 and 64 bit floating point");
+  }
   if (HarvestDataFlowFacts)
     if (V->getType()->isIntOrIntVectorTy(Width) ||
         V->getType()->isPtrOrPtrVectorTy()) {
@@ -207,15 +215,17 @@ Inst *ExprBuilder::makeArrayRead(Value *V) {
       }
     }
 
-  return IC.createVar(Width, Name, Range, Known.Zero, Known.One, NonZero, NonNegative,
-                      PowOfTwo, Negative, NumSignBits);
+  return IC.createVar(Width, Name, Known.Zero, Known.One, NonZero, NonNegative,
+                      PowOfTwo, Negative, Float, NumSignBits);
 }
 
 Inst *ExprBuilder::buildConstant(Constant *c) {
   if (auto ci = dyn_cast<ConstantInt>(c)) {
     return IC.getConst(ci->getValue());
   } else if (auto cf = dyn_cast<ConstantFP>(c)) {
-    return IC.getConst(cf->getValueAPF().bitcastToAPInt());
+    auto I = IC.getConst(cf->getValueAPF().bitcastToAPInt());
+    I->Float = true;
+    return I;
   } else if (isa<ConstantPointerNull>(c) || isa<UndefValue>(c) ||
              isa<ConstantAggregateZero>(c)) {
     return IC.getConst(APInt(DL.getTypeSizeInBits(c->getType()), 0));
@@ -320,12 +330,32 @@ Inst *ExprBuilder::buildHelper(Value *V) {
       default:
         llvm_unreachable("not ICmp");
     }
+  } else if (auto FCI = dyn_cast<FCmpInst>(V)) {
+    Inst *L = get(FCI->getOperand(0)), *R = get(FCI->getOperand(1));
+    switch (FCI->getPredicate()) {
+    case FCmpInst::FCMP_OEQ:
+      return IC.getInst(Inst::FOeq, 1, {L, R});
+    case FCmpInst::FCMP_OLE:
+      return IC.getInst(Inst::FOle, 1, {L, R});
+    case FCmpInst::FCMP_OLT:
+      return IC.getInst(Inst::FOlt, 1, {L, R});
+    case FCmpInst::FCMP_OGE:
+      return IC.getInst(Inst::FOge, 1, {L, R});
+    case FCmpInst::FCMP_OGT:
+      return IC.getInst(Inst::FOgt, 1, {L, R});
+    default:
+      makeArrayRead(V);
+    }
   } else if (auto BO = dyn_cast<BinaryOperator>(V)) {
-    if (!isa<IntegerType>(BO->getType()))
-      return makeArrayRead(V); // could be a vector operation
+    if (!(BO->getType()->isIntegerTy() || (BO->getType()->isFloatTy()) ||
+         (BO->getType()->isDoubleTy())))
+      {
+        return makeArrayRead(V); // could be a vector operation
+      }
 
     Inst *L = get(BO->getOperand(0)), *R = get(BO->getOperand(1));
     Inst::Kind K;
+    bool Float = false;
     switch (BO->getOpcode()) {
       case Instruction::Add:
         if (BO->hasNoSignedWrap() && BO->hasNoUnsignedWrap())
@@ -375,6 +405,26 @@ Inst *ExprBuilder::buildHelper(Value *V) {
       case Instruction::SRem:
         K = Inst::SRem;
         break;
+
+      case Instruction::FAdd:
+        Float = true;
+        K = Inst::FAdd;
+        break;
+      case Instruction::FMul:
+        Float = true;
+        K = Inst::FMul;
+        break;
+      case Instruction::FSub:
+        Float = true;
+        K = Inst::FSub;
+        break;
+      case Instruction::FDiv:
+        Float = true;
+        K = Inst::FDiv;
+        break;
+      case Instruction::FRem:
+        return makeArrayRead(V);
+
       case Instruction::And:
         K = Inst::And;
         break;
@@ -409,7 +459,9 @@ Inst *ExprBuilder::buildHelper(Value *V) {
       default:
         llvm_unreachable("not BinOp");
     }
-    return IC.getInst(K, L->Width, {L, R});
+    auto I = IC.getInst(K, L->Width, {L, R});
+    I->Float = Float;
+    return I;
   } else if (auto Sel = dyn_cast<SelectInst>(V)) {
     if (!isa<IntegerType>(Sel->getType()))
       return makeArrayRead(V); // could be a vector operation
@@ -839,6 +891,7 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI, DemandedBits *DB,
   for (auto &BB : F) {
     std::unique_ptr<BlockCandidateSet> BCS(new BlockCandidateSet);
     for (auto &I : BB) {
+<<<<<<< HEAD
       // Harvest Uses (Operands)
       if (HarvestUses) {
         std::unordered_set<llvm::Instruction *> Visited;
@@ -879,6 +932,11 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI, DemandedBits *DB,
       EB.markExternalUses(In);
       BCS->Replacements.emplace_back(&I, InstMapping(In, 0));
       assert(EB.get(&I)->hasOrigin(&I));
+=======
+      if (I.getType()->isIntegerTy() || I.getType()->isFloatingPointTy()) {
+        BCS->Replacements.emplace_back(&I, InstMapping(EB.get(&I), 0));
+      }
+>>>>>>> 5696bbd... FP Constant Synthesis Support
     }
     if (!BCS->Replacements.empty()) {
       std::unordered_set<Block *> VisitedBlocks;

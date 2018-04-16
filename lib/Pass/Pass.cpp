@@ -168,8 +168,16 @@ public:
                   std::map<Inst *, Value *> &ReplacedValues,
                   IRBuilder<> &Builder, Module *M) {
     Type *T = Type::getIntNTy(ReplacedInst->getContext(), I->Width);
-    if (I->K == Inst::Const)
-      return ConstantInt::get(T, I->Val);
+    if (I->K == Inst::Const) {
+      Type *t = ReplacedInst->getType();
+      if (t->isFloatTy()) {
+        return ConstantFP::get(t, I->Val.bitsToFloat());
+      } else if (t->isDoubleTy()) {
+        return ConstantFP::get(t, I->Val.bitsToDouble());
+      } else {
+        return ConstantInt::get(T, I->Val);
+      }
+    }
 
     if (ReplacedValues.find(I) != ReplacedValues.end())
       return ReplacedValues[I];

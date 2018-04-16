@@ -82,7 +82,7 @@ public:
       Printer.setArrayValuesToGet(Arr);
     }
     Printer.generateOutput();
-  
+
     if (DumpKLEEExprs) {
       SMTSS << "; KLEE expression:\n; ";
       std::unique_ptr<ExprPPrinter> PP(ExprPPrinter::create(SMTSS));
@@ -91,7 +91,7 @@ public:
       PP->print(E);
       SMTSS << '\n';
     }
-  
+
     return SMTSS.str();
   }
 
@@ -178,7 +178,58 @@ private:
       ref<Expr> Mul = MulExpr::create(get(Ops[0]), get(Ops[1]));
       return Mul;
     }
-  
+
+    case Inst::FAdd: {
+      ref<Expr> FAdd = FAddExpr::create(get(Ops[0]), get(Ops[1]),
+                                        llvm::APFloatBase::rmNearestTiesToEven);
+      //      recordUBInstruction(I, sdivUB(I));
+      return FAdd;
+    }
+    case Inst::FSub: {
+      ref<Expr> FSub = FSubExpr::create(get(Ops[0]), get(Ops[1]),
+                                        llvm::APFloatBase::rmNearestTiesToEven);
+      //      recordUBInstruction(I, sdivUB(I));
+      return FSub;
+    }
+    case Inst::FDiv: {
+      ref<Expr> FDiv = FDivExpr::create(get(Ops[0]), get(Ops[1]),
+                                        llvm::APFloatBase::rmNearestTiesToEven);
+      //      recordUBInstruction(I, sdivUB(I));
+      return FDiv;
+    }
+    case Inst::FMul: {
+      ref<Expr> FMul = FMulExpr::create(get(Ops[0]), get(Ops[1]),
+                                        llvm::APFloatBase::rmNearestTiesToEven);
+      //      recordUBInstruction(I, sdivUB(I));
+      return FMul;
+    }
+
+    case Inst::FOeq: {
+      ref<Expr> FOeq = FOeqExpr::create(get(Ops[0]), get(Ops[1]));
+      //      recordUBInstruction(I, sdivUB(I));
+      return FOeq;
+    }
+    case Inst::FOle: {
+      ref<Expr> FOle = FOleExpr::create(get(Ops[0]), get(Ops[1]));
+      //      recordUBInstruction(I, sdivUB(I));
+      return FOle;
+    }
+    case Inst::FOlt: {
+      ref<Expr> FOlt = FOltExpr::create(get(Ops[0]), get(Ops[1]));
+      //      recordUBInstruction(I, sdivUB(I));
+      return FOlt;
+    }
+    case Inst::FOge: {
+      ref<Expr> FOge = FOgeExpr::create(get(Ops[0]), get(Ops[1]));
+      //      recordUBInstruction(I, sdivUB(I));
+      return FOge;
+    }
+    case Inst::FOgt: {
+      ref<Expr> FOgt = FOgtExpr::create(get(Ops[0]), get(Ops[1]));
+      //      recordUBInstruction(I, sdivUB(I));
+      return FOgt;
+    }
+
     // We introduce these extra checks here because KLEE invokes llvm::APInt's
     // div functions, which crash upon divide-by-zero.
     case Inst::UDiv:
@@ -196,11 +247,11 @@ private:
       if (R->isZero()) {
         return klee::ConstantExpr::create(0, Ops[1]->Width);
       }
-  
+
       switch (I->K) {
       default:
         break;
-  
+
       case Inst::UDiv: {
         ref<Expr> Udiv = UDivExpr::create(get(Ops[0]), R);
         return Udiv;
@@ -228,7 +279,7 @@ private:
       llvm_unreachable("unknown kind");
     }
     }
-  
+
     case Inst::And:
       return buildAssoc(AndExpr::create, Ops);
     case Inst::Or:
@@ -368,7 +419,7 @@ private:
     }
     llvm_unreachable("unknown kind");
   }
-  
+
   ref<Expr> get(Inst *I) {
     ref<Expr> &E = ExprMap[I];
     if (E.isNull()) {
@@ -377,7 +428,7 @@ private:
     }
     return E;
   }
-  
+
   ref<Expr> makeSizedArrayRead(unsigned Width, llvm::StringRef Name, Inst *Origin) {
     std::string NameStr;
     if (Name.empty())
@@ -389,7 +440,7 @@ private:
     Arrays.emplace_back(
      new Array(ArrayNames.makeName(NameStr), 1, 0, 0, Expr::Int32, Width));
     Vars.push_back(Origin);
-  
+
     UpdateList UL(Arrays.back().get(), 0);
     return ReadExpr::create(UL, klee::ConstantExpr::alloc(0, Expr::Int32));
   }
