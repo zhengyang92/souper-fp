@@ -1073,7 +1073,8 @@ bool Parser::parseLine(std::string &ErrStr) {
                     Upper(InstWidth, 0, false);
         llvm::ConstantRange Range(InstWidth, /*isFullSet*/true);
         bool NonZero = false, NonNegative = false, PowOfTwo = false, Negative = false,
-          hasExternalUses = false;
+          hasExternalUses = false, Float = false;
+        // TODO: Add parser support for float
         unsigned SignBits = 0;
         while (CurTok.K != Token::ValName && CurTok.K != Token::Ident && CurTok.K != Token::Eof) {
           if (CurTok.K == Token::OpenParen) {
@@ -1226,7 +1227,7 @@ bool Parser::parseLine(std::string &ErrStr) {
           }
         }
         Inst *I = IC.createVar(InstWidth, InstName, Range, Zero, One, NonZero,
-                               NonNegative, PowOfTwo, Negative, SignBits);
+                               NonNegative, PowOfTwo, Negative, Float, SignBits);
         Context.setInst(InstName, I);
         return true;
       }

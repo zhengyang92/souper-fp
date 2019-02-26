@@ -233,18 +233,10 @@ public:
 
   Inst *createVar(unsigned Width, llvm::StringRef Name);
   Inst *createVar(unsigned Width, llvm::StringRef Name,
-<<<<<<< HEAD
                   llvm::ConstantRange Range,
                   llvm::APInt Zero, llvm::APInt One,
                   bool NonZero, bool NonNegative, bool PowOfTwo,
-                  bool Negative, unsigned NumSignBits);
-=======
-                  llvm::APInt Zero=llvm::APInt(1, 0, false),
-                  llvm::APInt One=llvm::APInt(1, 0, false), bool NonZero=false,
-                  bool NonNegative=false, bool PowOfTwo=false, bool Negative=false,
-                  bool Float=false,
-                  unsigned NumSignBits=1);
->>>>>>> 5696bbd... FP Constant Synthesis Support
+                  bool Negative, bool Float, unsigned NumSignBits);
   Block *createBlock(unsigned Preds);
 
   Inst *getPhi(Block *B, const std::vector<Inst *> &Ops);

@@ -655,7 +655,7 @@ Inst *InstContext::createVar(unsigned Width, llvm::StringRef Name) {
   return createVar(Width, Name, /*Range=*/llvm::ConstantRange(Width, /*isFullSet=*/ true),
                    /*KnownZero=*/ llvm::APInt(Width, 0), /*KnownOne=*/ llvm::APInt(Width, 0),
                    /*NonZero=*/ false, /*NonNegative=*/ false, /*PowerOfTwo=*/ false,
-                   /*Negative=*/ false, /*SignBits=*/ 1);
+                   /*Negative=*/ false, /*Float=*/ false, /*SignBits=*/ 1);
 }
 
 Block *InstContext::createBlock(unsigned Preds) {
@@ -1047,7 +1047,7 @@ Inst *souper::getInstCopy(Inst *I, InstContext &IC,
           I->Name.find(ReservedConstPrefix) == std::string::npos)
         Copy = IC.createVar(I->Width, I->Name, I->Range, I->KnownZeros,
                             I->KnownOnes, I->NonZero, I->NonNegative,
-                            I->PowOfTwo, I->Negative, I->NumSignBits);
+                            I->PowOfTwo, I->Negative, I->Float, I->NumSignBits);
       else {
         Copy = I;
       }

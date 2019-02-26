@@ -215,7 +215,7 @@ Inst *ExprBuilder::makeArrayRead(Value *V) {
       }
     }
 
-  return IC.createVar(Width, Name, Known.Zero, Known.One, NonZero, NonNegative,
+  return IC.createVar(Width, Name, Range, Known.Zero, Known.One, NonZero, NonNegative,
                       PowOfTwo, Negative, Float, NumSignBits);
 }
 
@@ -891,7 +891,6 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI, DemandedBits *DB,
   for (auto &BB : F) {
     std::unique_ptr<BlockCandidateSet> BCS(new BlockCandidateSet);
     for (auto &I : BB) {
-<<<<<<< HEAD
       // Harvest Uses (Operands)
       if (HarvestUses) {
         std::unordered_set<llvm::Instruction *> Visited;
@@ -916,7 +915,7 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI, DemandedBits *DB,
       }
 
       // Harvest Defs
-      if (!I.getType()->isIntegerTy())
+      if (!I.getType()->isIntegerTy() && !I.getType()->isFloatingPointTy())
         continue;
       if (I.hasNUses(0))
         continue;
@@ -932,11 +931,6 @@ void ExtractExprCandidates(Function &F, const LoopInfo *LI, DemandedBits *DB,
       EB.markExternalUses(In);
       BCS->Replacements.emplace_back(&I, InstMapping(In, 0));
       assert(EB.get(&I)->hasOrigin(&I));
-=======
-      if (I.getType()->isIntegerTy() || I.getType()->isFloatingPointTy()) {
-        BCS->Replacements.emplace_back(&I, InstMapping(EB.get(&I), 0));
-      }
->>>>>>> 5696bbd... FP Constant Synthesis Support
     }
     if (!BCS->Replacements.empty()) {
       std::unordered_set<Block *> VisitedBlocks;
